@@ -2,8 +2,10 @@
   "dependencies": {
     "@fastify/cors": "^8.2.0",
     "@prisma/client": "^4.8.1",
+    "dayjs": "^1.11.7",
     "fastify": "^4.11.0",
-    "node": "^19.4.0"
+    "node": "^19.4.0",
+    "zod": "^3.20.2"
   },
   "name": "server",
   "version": "1.0.0",
