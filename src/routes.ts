@@ -30,7 +30,6 @@ export async function appRoutes(app: FastifyInstance) {
                 }
             }
         })
-
     });
 
     app.get('/day', async (request) => {
@@ -39,7 +38,6 @@ export async function appRoutes(app: FastifyInstance) {
         })
 
         const { date } = getDayParams.parse(request.query)
-
         const parsedDate = dayjs(date).startOf('day')
         const weekDay = parsedDate.get('day')
 
@@ -70,7 +68,6 @@ export async function appRoutes(app: FastifyInstance) {
             return dayHabit.day_id
         })
 
-
         return {
             possibleHabits,
             CompletedHabits
@@ -79,9 +76,8 @@ export async function appRoutes(app: FastifyInstance) {
     })
 
     app.patch('/habits/:id/toggle', async (request) => {
-        //route param
         const toggleHabitParams = z.object({
-            id: z.string().uuid(),
+            id: z.string().uuid()
         })
 
         const { id } = toggleHabitParams.parse(request.params)
@@ -90,14 +86,14 @@ export async function appRoutes(app: FastifyInstance) {
 
         let day = await prisma.day.findUnique({
             where: {
-                date: today,
+                date: today
             }
         })
 
         if (!day) {
             day = await prisma.day.create({
                 data: {
-                    date: today,
+                    date: today
                 }
             })
         }
@@ -111,33 +107,47 @@ export async function appRoutes(app: FastifyInstance) {
             }
         })
 
-
         if (dayHabit) {
-            //remove a marcação do habito
             await prisma.dayHabit.delete({
                 where: {
-                    id: dayHabit.id,
+                    id: dayHabit.id
                 }
             })
         } else {
-            //completar o habito neste dia
             await prisma.dayHabit.create({
                 data: {
                     day_id: day.id,
-                    habit_id: id,
+                    habit_id: id
                 }
             })
         }
-    });
+    })
 
     app.get('/summary', async () => {
-        // Query mais complexas, mais condições, relacionamento => SQL na mão
-        // Prisma ORM: RAW SQL => SQLite
-
         const summary = await prisma.$queryRaw`
-        SELECT * FROM days
-        `;
-        return summary;
+      SELECT 
+        D.id, 
+        D.date,
+        (
+          SELECT 
+            cast(count(*) as float)
+          FROM day_habits DH
+          WHERE DH.day_id = D.id
+        ) as completed,
+        (
+          SELECT
+            cast(count(*) as float)
+          FROM habit_week_days HDW
+          JOIN habits H
+            ON H.id = HDW.habit_id
+          WHERE
+            HDW.week_day = cast(strftime('%w', D.date/1000.0, 'unixepoch') as int)
+            AND H.created_at <= D.date
+        ) as amount
+      FROM days D
+    `
+
+        return summary
     })
 
 }
